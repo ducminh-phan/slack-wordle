@@ -1,4 +1,4 @@
-import axios, { AxiosError } from "axios";
+import axios from "axios";
 
 import type { Block, DictionaryAPIResponse } from "./interface";
 import words from "./words";
