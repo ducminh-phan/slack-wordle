@@ -1,7 +1,7 @@
 service: slack-wordle
 
 plugins:
-  - serverless-plugin-typescript
+  - serverless-esbuild
 
 provider:
   name: aws
@@ -16,3 +16,7 @@ functions:
       - schedule: cron(0 11 * * ? *)
     environment:
       SLACK_WEBHOOK_URL: ${env:SLACK_WEBHOOK_URL}
+
+custom:
+  esbuild:
+    target: node16

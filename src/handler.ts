@@ -1,22 +1,44 @@
 import axios from "axios";
+import dayjs from "dayjs";
 
-import type { Block, DictionaryAPIResponse } from "./interface";
-import words from "./words";
+import type { Block, DictionaryAPIResponse, WordleSolution } from "./interface";
 
-const ORIGIN_DATE = new Date(2021, 5, 19, 0, 0, 0, 0);
+const get = async <T>(url: string): Promise<T | null> => {
+  try {
+    const response = await axios.get<T>(url, {
+      timeout: 3_000,
+    });
 
-const getDateIndex = (date: Date): number => {
-  const timeDelta =
-    new Date(date).setHours(0, 0, 0, 0) - ORIGIN_DATE.setHours(0, 0, 0, 0);
+    return response.data;
+  } catch (e) {
+    if (axios.isAxiosError(e) && e.response) {
+      console.log("Response data", e.response.data);
+      console.log("Response status", e.response.status);
+    } else {
+      console.log(e);
+    }
+  }
 
-  return Math.round(timeDelta / 864e5);
+  return null;
+};
+
+const getSolution = async (): Promise<WordleSolution | null> => {
+  const now = dayjs();
+  const yesterday = now.subtract(1, "day");
+  const yesterdayAsString = yesterday.format("YYYY-MM-DD");
+
+  return await get(
+    `https://www.nytimes.com/svc/wordle/v2/${yesterdayAsString}.json`,
+  );
 };
 
 export default async () => {
-  const today = new Date();
+  const rawSolution = await getSolution();
+  if (rawSolution === null) {
+    return;
+  }
 
-  const index = getDateIndex(today) - 1;
-  const solution = words[index % words.length];
+  const { solution, days_since_launch: index } = rawSolution;
 
   const blocks: Block[] = [
     {
@@ -31,12 +53,12 @@ export default async () => {
     },
   ];
 
-  try {
-    const dictAPIResponse = await axios.get<DictionaryAPIResponse[]>(
-      `https://api.dictionaryapi.dev/api/v2/entries/en/${solution.toLowerCase()}`,
-    );
-    const dictAPIData = dictAPIResponse.data?.[0];
+  const dictAPIResponse = await get<DictionaryAPIResponse[]>(
+    `https://api.dictionaryapi.dev/api/v2/entries/en/${solution.toLowerCase()}`,
+  );
+  const dictAPIData = dictAPIResponse?.[0];
 
+  if (dictAPIData) {
     if (dictAPIData?.phonetics?.length ?? 0 >= 0) {
       for (const phonetic of dictAPIData.phonetics) {
         if (phonetic?.text !== undefined) {
@@ -68,13 +90,6 @@ export default async () => {
           text,
         },
       });
-    }
-  } catch (e) {
-    if (axios.isAxiosError(e) && e.response) {
-      console.log("Response data", e.response.data);
-      console.log("Response status", e.response.status);
-    } else {
-      console.log(e);
     }
   }
 

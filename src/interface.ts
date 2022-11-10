@@ -1,3 +1,8 @@
+export interface WordleSolution {
+  solution: string;
+  days_since_launch: number;
+}
+
 interface Definition {
   definition: string;
 }
